@@ -13,7 +13,7 @@ Hands-on labs for learning ROS2 and robotics simulation with Gazebo.
 
 **Don't have Ubuntu 24.04?** See the [Installation Guide](docs/INSTALLATION_GUIDE.md) for setup instructions.
 
-### 2. Build Docker Image(if it wasnt build)
+### 1. Build Docker Image(if it wasnt build)
 
 ```bash
 ./scripts/cmd build-docker
@@ -21,12 +21,12 @@ Hands-on labs for learning ROS2 and robotics simulation with Gazebo.
 
 This takes 10-15 minutes on first run.
 
-### 3. Run Container
+### 2. Run Container
 
 ```bash
 ./scripts/cmd run
 ```
-### 4. Install and open VScode
+### 3. Install and open VScode
 
 ```bash
 code .
