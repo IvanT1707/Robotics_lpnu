@@ -60,4 +60,4 @@ gz topic -e -t /lidar
 ```
 Press Ctrl+C to stop the data stream.
 
-## Tip: In the Gazebo GUI, you can activate the Visualize Lidar plugin and select the /lidar topic from the dropdown menu to see the blue laser rays interacting with the environment.
+## In the Gazebo GUI, you can activate the Visualize Lidar plugin and select the /lidar topic from the dropdown menu to see the blue laser rays interacting with the environment.
