@@ -7,8 +7,6 @@ This repository contains the solution for Lab 1. It features a custom 4-wheeled 
 - Ubuntu (native or WSL2)
 - Docker installed and configured
 
----
-
 ## Quick Start Guide
 
 ### Step 1: Build and Start the Environment
@@ -29,9 +27,6 @@ Inside the running container (in Terminal 1), start the simulation with our cust
 gz sim /opt/ws/src/code/lab1/worlds/robot.sdf
 ```
 
-## Important: 
-Ensure the simulation is playing. If it starts paused, press the Play button in the bottom left corner of the Gazebo GUI.
-
 ### Step 3: Control the Robot
 You can control the robot's movement using terminal commands. Open a new terminal (Terminal 2), navigate to the repository root, and enter the container:
 
@@ -51,7 +46,11 @@ To stop the robot, send zero velocity:
 gz topic -t "/cmd_vel" -m gz.msgs.Twist -p "linear: {x: 0.0}, angular: {z: 0.0}"
 ```
 
-## Tip: You can also use the Teleop plugin inside the Gazebo GUI. Set the topic to /cmd_vel and use your keyboard arrows to drive the robot.
+## You can also use the Teleop plugin inside the Gazebo GUI. Set the topic to /cmd_vel and use your keyboard arrows to drive the robot.
+-Open the Plugins menu (three vertical dots in the top-right).
+-Select Key Publisher.
+-Click anywhere on the 3D Scene to focus the window.
+-Use the Arrow Keys to move
 
 ### Step 4: Verify LiDAR Sensor Data
 To verify that the LiDAR is scanning the obstacles, open a third terminal, enter the container (./scripts/cmd bash), and read the live data stream:
