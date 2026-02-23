@@ -47,10 +47,10 @@ gz topic -t "/cmd_vel" -m gz.msgs.Twist -p "linear: {x: 0.0}, angular: {z: 0.0}"
 ```
 
 ## You can also use the Teleop plugin inside the Gazebo GUI. Set the topic to /cmd_vel and use your keyboard arrows to drive the robot.
--Open the Plugins menu (three vertical dots in the top-right).
--Select Key Publisher.
--Click anywhere on the 3D Scene to focus the window.
--Use the Arrow Keys to move
+Open the Plugins menu (three vertical dots in the top-right).
+Select Key Publisher.
+Click anywhere on the 3D Scene to focus the window.
+Use the Arrow Keys to move
 
 ### Step 4: Verify LiDAR Sensor Data
 To verify that the LiDAR is scanning the obstacles, open a third terminal, enter the container (./scripts/cmd bash), and read the live data stream:
