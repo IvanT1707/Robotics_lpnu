@@ -1,9 +1,3 @@
-# Robotics Introduction Labs
-
-Hands-on labs for learning ROS2 and robotics simulation with Gazebo.
-
----
-
 ## Prerequisites
 
 - **Ubuntu 24.04** (native, WSL2, dual boot, or VirtualBox)
@@ -36,7 +30,7 @@ This takes 10-15 minutes on first run.
 ./scripts/cmd run
 ```
 
-## Testing Robot
+### 4. Testing Robot
 
 ```bash
 # Run Container
