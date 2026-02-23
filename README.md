@@ -13,16 +13,7 @@ Hands-on labs for learning ROS2 and robotics simulation with Gazebo.
 
 **Don't have Ubuntu 24.04?** See the [Installation Guide](docs/INSTALLATION_GUIDE.md) for setup instructions.
 
----
-### 1. Clone Repository
-
-```bash
-cd ~
-git clone https://github.com/IvanT1707/Robotics_lpnu.git
-cd robotics_lpnu
-```
-
-### 2. Build Docker Image
+### 2. Build Docker Image(if it wasnt build)
 
 ```bash
 ./scripts/cmd build-docker
