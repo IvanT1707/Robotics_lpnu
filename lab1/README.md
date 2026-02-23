@@ -1,61 +1,64 @@
+# Laboratory Work 1: Building a Robot in Gazebo
+
+## Overview
+This repository contains the solution for Lab 1. It features a custom 4-wheeled mobile robot equipped with a differential drive controller and a LiDAR sensor, navigating a simulated environment with test obstacles.
+
 ## Prerequisites
-
-- **Ubuntu 24.04** (native, WSL2, dual boot, or VirtualBox)
-- **Git** and **GitHub account** - [GitHub Hello World Guide](https://docs.github.com/en/get-started/start-your-journey/hello-world)
-- **30 GB free disk space**
-- **8 GB RAM** (16 GB recommended)
-
-**Don't have Ubuntu 24.04?** See the [Installation Guide](docs/INSTALLATION_GUIDE.md) for setup instructions.
+- Ubuntu (native or WSL2)
+- Docker installed and configured
 
 ---
-### 1. Clone Repository
+
+## Quick Start Guide
+
+### Step 1: Build and Start the Environment
+Open your terminal in the root directory of this repository and execute the following commands to set up the Docker container:
 
 ```bash
-cd ~
-git clone https://github.com/IvanT1707/Robotics_lpnu.git
-cd robotics_lpnu
-```
-
-### 2. Build Docker Image
-
-```bash
+# Build the Docker image (only needed the first time)
 ./scripts/cmd build-docker
-```
 
-This takes 10-15 minutes on first run.
-
-### 3. Run Container
-
-```bash
+# Start and enter the Docker container
 ./scripts/cmd run
 ```
 
-### 4. Testing Robot
+### Step 2: Launch the Gazebo Simulation
+Inside the running container (in Terminal 1), start the simulation with our custom robot world:
 
 ```bash
-# Run Container
-./scripts/cmd run
-```
-
-```bash
-# Open another terminal
-./scripts/cmd bash
-
-# Launch Gazebo with your robot world in the first terminal
 gz sim /opt/ws/src/code/lab1/worlds/robot.sdf
-
-# In another terminal, list topics
-gz topic -l
-
-# Look at the lidar messages on the /lidar topic, specifically the ranges data
-gz topic -e -t /lidar
-
-
-# Send movement command
-gz topic -t "/cmd_vel" -m gz.msgs.Twist -p "linear: {x: 0.5}, angular: {z: 0.2}"
 ```
 
+## Important: 
+Ensure the simulation is playing. If it starts paused, press the Play button in the bottom left corner of the Gazebo GUI.
 
-**Test movement:**
-- Activate Key publisher plugin inside the Gazebo GUI to use your keyboard arrows to drive the robot. 
-- Publish to `/cmd_vel` topic
+### Step 3: Control the Robot
+You can control the robot's movement using terminal commands. Open a new terminal (Terminal 2), navigate to the repository root, and enter the container:
+
+```bash
+./scripts/cmd bash
+```
+
+Send a movement command to drive the robot forward:
+
+```bash
+gz topic -t "/cmd_vel" -m gz.msgs.Twist -p "linear: {x: 0.5}, angular: {z: 0.0}"
+```
+
+To stop the robot, send zero velocity:
+
+```bash
+gz topic -t "/cmd_vel" -m gz.msgs.Twist -p "linear: {x: 0.0}, angular: {z: 0.0}"
+```
+
+## Tip: You can also use the Teleop plugin inside the Gazebo GUI. Set the topic to /cmd_vel and use your keyboard arrows to drive the robot.
+
+### Step 4: Verify LiDAR Sensor Data
+To verify that the LiDAR is scanning the obstacles, open a third terminal, enter the container (./scripts/cmd bash), and read the live data stream:
+
+```bash
+gz topic -e -t /lidar
+```
+Press Ctrl+C to stop the data stream.
+
+## Tip: In the Gazebo GUI, you can activate the Visualize Lidar plugin and select the /lidar topic from the dropdown menu to see the blue laser rays interacting with the environment.
