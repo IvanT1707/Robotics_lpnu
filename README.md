@@ -26,12 +26,13 @@ This takes 10-15 minutes on first run.
 ```bash
 ./scripts/cmd run
 ```
-### 3. Install and open VScode
 
+### 3. Launch the Gazebo Simulation
+- In the running container type this command
 ```bash
-code .
+# In a new terminal window
+./scripts/cmd bash
 ```
-
 
 #### Open Additional Terminals
 
