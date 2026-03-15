@@ -1,16 +1,13 @@
 """Dead reckoning - STUDENT TASK.
 
 Integrate /cmd_vel to estimate pose; compare with Gazebo ground truth (/odom).
-
-Reference: https://www.roboticsbook.org/S52_diffdrive_actions.html
 """
 import math
 
 import rclpy
 from rclpy.node import Node
-from geometry_msgs.msg import TwistStamped
+from geometry_msgs.msg import TwistStamped, PoseStamped
 from nav_msgs.msg import Odometry, Path
-from geometry_msgs.msg import PoseStamped
 
 
 class DeadReckoningNode(Node):
@@ -33,17 +30,72 @@ class DeadReckoningNode(Node):
         self.create_subscription(Odometry, gt_topic, self.gt_callback, 10)
         self.pub_path = self.create_publisher(Path, path_topic, 10)
 
-        # TODO: add state variables (pose, time, ground truth)
+        self.x = 0.0
+        self.y = 0.0
+        self.theta = 0.0
+        self.last_time = None
+        
+        self.gt_x = 0.0
+        self.gt_y = 0.0
+        self.is_initialized = False
+
         self.path_msg = Path()
         self.path_msg.header.frame_id = self.frame_id
 
     def cmd_callback(self, msg: TwistStamped):
-        # TODO: integrate v, w to update pose; publish path
-        pass
+        if not self.is_initialized:
+            return
+
+        current_time = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
+
+        if self.last_time is None:
+            self.last_time = current_time
+            return
+
+        dt = current_time - self.last_time
+        self.last_time = current_time
+
+        v = msg.twist.linear.x
+        w = msg.twist.angular.z
+
+        self.x += v * math.cos(self.theta) * dt
+        self.y += v * math.sin(self.theta) * dt
+        self.theta += w * dt
+
+        pose = PoseStamped()
+        pose.header = msg.header
+        pose.header.frame_id = self.frame_id
+        pose.pose.position.x = self.x
+        pose.pose.position.y = self.y
+        
+        pose.pose.orientation.z = math.sin(self.theta / 2.0)
+        pose.pose.orientation.w = math.cos(self.theta / 2.0)
+
+        self.path_msg.poses.append(pose)
+
+        if len(self.path_msg.poses) > self.max_poses:
+            self.path_msg.poses.pop(0)
+
+        self.pub_path.publish(self.path_msg)
+
+        error = math.sqrt((self.x - self.gt_x)**2 + (self.y - self.gt_y)**2)
+        self.get_logger().info(f"Drift Error: {error:.4f} m")
 
     def gt_callback(self, msg: Odometry):
-        # TODO: store ground truth for comparison
-        pass
+        self.gt_x = msg.pose.pose.position.x
+        self.gt_y = msg.pose.pose.position.y
+        
+        if not self.is_initialized:
+            self.x = self.gt_x
+            self.y = self.gt_y
+            
+            q = msg.pose.pose.orientation
+            siny_cosp = 2.0 * (q.w * q.z + q.x * q.y)
+            cosy_cosp = 1.0 - 2.0 * (q.y * q.y + q.z * q.z)
+            self.theta = math.atan2(siny_cosp, cosy_cosp)
+            
+            self.is_initialized = True
+            self.get_logger().info("Dead Reckoning initialized to Ground Truth!")
 
 
 def main(args=None):
