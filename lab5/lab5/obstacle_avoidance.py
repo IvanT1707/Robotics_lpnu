@@ -1,15 +1,11 @@
 #!/usr/bin/env python3
 """Obstacle avoidance using Artificial Potential Fields."""
-
 import math
-
 import rclpy
 from rclpy.node import Node
-
 from geometry_msgs.msg import TwistStamped
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import LaserScan
-
 
 class ObstacleAvoidanceNode(Node):
     def __init__(self):
@@ -20,10 +16,11 @@ class ObstacleAvoidanceNode(Node):
         self.declare_parameter("cmd_vel_topic", "/cmd_vel")
         self.declare_parameter("goal_x", 3.0)
         self.declare_parameter("goal_y", 3.0)
-
-        self.k_att = 1.0
-        self.k_rep = 0.01
-        self.safe_dist = 0.4
+        
+        # Налаштовані коефіцієнти для збалансованого руху
+        self.k_att = 1.0       
+        self.k_rep = 0.5    
+        self.safe_dist = 0.6 
 
         self.goal_x = float(self.get_parameter("goal_x").value)
         self.goal_y = float(self.get_parameter("goal_y").value)
@@ -62,54 +59,81 @@ class ObstacleAvoidanceNode(Node):
         if not self.scan_ranges:
             return
 
-        dist_to_goal = math.sqrt((self.goal_x - self.x) ** 2 + (self.goal_y - self.y) ** 2)
+        # Перевірка досягнення цілі
+        dist_to_goal = math.sqrt((self.goal_x - self.x)**2 + (self.goal_y - self.y)**2)
         if dist_to_goal < 0.2:
-            self.get_logger().info("Goal reached!", throttle_duration_sec=2.0)
+            self.get_logger().info(f"Goal reached!", throttle_duration_sec=2.0)
             self.pub_cmd.publish(TwistStamped())
             return
 
+        # 1. Кут до цілі у локальній системі координат робота
         angle_to_goal = math.atan2(self.goal_y - self.y, self.goal_x - self.x)
         angle_to_goal_local = angle_to_goal - self.theta
+        
+        while angle_to_goal_local > math.pi: angle_to_goal_local -= 2.0 * math.pi
+        while angle_to_goal_local < -math.pi: angle_to_goal_local += 2.0 * math.pi
 
-        while angle_to_goal_local > math.pi:
-            angle_to_goal_local -= 2.0 * math.pi
-        while angle_to_goal_local < -math.pi:
-            angle_to_goal_local += 2.0 * math.pi
-
+        # Сила притягання до цілі
         F_x = self.k_att * math.cos(angle_to_goal_local)
         F_y = self.k_att * math.sin(angle_to_goal_local)
 
+        # 2. Пошук найближчої перешкоди (щоб уникнути сумування гігантських сил)
+        min_dist = float('inf')
+        min_angle = 0.0
+
         for i, r in enumerate(self.scan_ranges):
-            if r < 0.05 or math.isinf(r) or math.isnan(r):
+            if r < 0.12 or math.isinf(r) or math.isnan(r): 
                 continue
-            if r < self.safe_dist:
-                angle = self.scan_angle_min + i * self.scan_angle_increment
+            
+            if r < min_dist:
+                min_dist = r
+                min_angle = self.scan_angle_min + i * self.scan_angle_increment
 
-                while angle > math.pi:
-                    angle -= 2.0 * math.pi
-                while angle < -math.pi:
-                    angle += 2.0 * math.pi
+        # Нормалізація кута перешкоди
+        while min_angle > math.pi: min_angle -= 2.0 * math.pi
+        while min_angle < -math.pi: min_angle += 2.0 * math.pi
 
-                rep_mag = self.k_rep * (1.0 / r - 1.0 / self.safe_dist) * (1.0 / (r ** 2))
-                F_x -= rep_mag * math.cos(angle)
-                F_y -= rep_mag * math.sin(angle)
+        # 3. Додавання сил відштовхування та обтікання
+        if min_dist < self.safe_dist:
+            # Класична магнітуда відштовхування
+            rep_mag = self.k_rep * (1.0 / min_dist - 1.0 / self.safe_dist) * (1.0 / (min_dist**2))
+            
+            gnron_factor = dist_to_goal ** 2  # Квадрат відстані до цілі
+            rep_mag = rep_mag * min(gnron_factor, 1.0) # Не даємо множнику стати більшим за 1.0
+            
+            # Пряме відштовхування назад
+            F_x -= rep_mag * math.cos(min_angle)
+            F_y -= rep_mag * math.sin(min_angle)
 
+            # Тангенціальна сила (вбік) для об'їзду
+            sign = -1.0 if min_angle >= 0 else 1.0
+            tangent_angle = min_angle + sign * (math.pi / 2.0)
+            
+            k_tangent = 1.2 # Коефіцієнт сили обтікання
+            
+            F_x += (rep_mag * k_tangent) * math.cos(tangent_angle)
+            F_y += (rep_mag * k_tangent) * math.sin(tangent_angle)
+
+        # 4. Конвертація вектора сил у швидкості
         v = F_x
-        w = math.atan2(F_y, F_x) * 2.0
+        w = math.atan2(F_y, F_x) * 2.5
 
-        v = max(0.0, min(0.2, v))
-        w = max(-1.0, min(1.0, w))
+        # 5. Екстрена зупинка та розворот, якщо надто близько до стіни
+        if min_dist < 0.25:
+            v = -0.1 
+            w = 1.5 if min_angle < 0 else -1.5 
+        else:
+            # Звичайний рух з обмеженням максимальної швидкості
+            v = max(0.0, min(0.2, v))
+            w = max(-1.5, min(1.5, w))
 
-        if v < 0.02 and abs(w) < 0.1 and dist_to_goal > 0.5:
-            w = 0.5
-
+        # 6. Відправка команд на колеса
         cmd = TwistStamped()
         cmd.header.stamp = self.get_clock().now().to_msg()
         cmd.header.frame_id = "base_link"
         cmd.twist.linear.x = float(v)
         cmd.twist.angular.z = float(w)
         self.pub_cmd.publish(cmd)
-
 
 def main(args=None):
     rclpy.init(args=args)
@@ -118,9 +142,10 @@ def main(args=None):
         rclpy.spin(node)
     except KeyboardInterrupt:
         pass
+    
     node.destroy_node()
-    rclpy.shutdown()
-
+    if rclpy.ok():
+        rclpy.shutdown()
 
 if __name__ == "__main__":
     main()
